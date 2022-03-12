@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "submission_test",
+      "setup": "sudo -H pip3 install setuptools; sudo -H pip3 install -U -r requirements.txt",
+      "run": "pytest",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 60,
+      "points": null
+    }
+  ]
+}
