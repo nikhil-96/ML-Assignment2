@@ -182,19 +182,18 @@ def simple_pipeline(X, model):
     numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
     categorical = X.select_dtypes(include="category").columns.tolist()
     
-    numeric_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant'))])
+    numerical_pipe = Pipeline([
+    ('imputer', SimpleImputer(strategy="constant",fill_value=0))])
     
-    categorical_transformer = Pipeline(steps=[
+    categorical_encoder = Pipeline([
     ('imputer', SimpleImputer(strategy='most_frequent')),
     ('onehot', OneHotEncoder(sparse=False, handle_unknown='ignore'))])
     
-    preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', numeric_transformer, numerical),
-        ('cat', categorical_transformer, categorical)])
+    preprocessor = ColumnTransformer([
+        ('num', numerical_pipe, numerical),
+        ('cat', categorical_encoder, categorical)])
     
-    return Pipeline(steps=[('preprocess', preprocessor), ('model', model)])
+    return Pipeline([('preprocess', preprocessor), ('model', model)])
 
 
 # #### Sanity check
@@ -313,20 +312,25 @@ X = X[cols]
 
 
 knn = KNeighborsRegressor(n_neighbors=3, n_jobs=-1)
-pipe = simple_pipeline(X, knn).fit(X, y)
+reg = simple_pipeline(X, knn).fit(X, y)
 
 
 # In[21]:
 
 
-pipe.n_features_in_
+numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
+categorical = X.select_dtypes(include="category").columns.tolist()
+    
+tf = reg.named_steps["preprocess"].named_transformers_["cat"].named_steps["onehot"]
+reg_feature_names = tf.get_feature_names_out(categorical)
+reg_feature_names = np.r_[reg_feature_names, numerical]
 
 
 # In[22]:
 
 
 # Fill in the correct answer (should be an integer). Don't change the name of the variable
-q_1_4 = pipe.n_features_in_
+q_1_4 = len(reg_feature_names)
 
 
 # ## Part 2: Encoders (16 points)
@@ -354,25 +358,24 @@ def flexible_pipeline(X, model, scaler=StandardScaler(), encoder=OneHotEncoder()
     numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
     categorical = X.select_dtypes(include="category").columns.tolist()
     
-    numeric_transformer = Pipeline(steps=[
+    numerical_pipe = Pipeline([
     ('imputer', SimpleImputer(strategy='constant',fill_value=0)),
     ('scaler', scaler)])
     
     if(encoder.__class__.__name__ == "TargetEncoder"):
-        categorical_transformer = Pipeline(steps=[
+        categorical_encoder = Pipeline([
         ('imputer', SimpleImputer(strategy='most_frequent')),
         ('target', encoder),('imputer1', SimpleImputer(strategy='mean'))])
     else:
-        categorical_transformer = Pipeline(steps=[
+        categorical_encoder = Pipeline([
         ('imputer', SimpleImputer(strategy='most_frequent')),
         ('encoder', encoder)])
     
-    preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', numeric_transformer, numerical),
-        ('cat', categorical_transformer, categorical)])
+    preprocessor = ColumnTransformer([
+        ('num', numerical_pipe, numerical),
+        ('cat', categorical_encoder, categorical)])
     
-    return Pipeline(steps=[('preprocess', preprocessor), ('model', model)])
+    return Pipeline([('preprocess', preprocessor), ('model', model)])
 
 #     numeric_pipe = make_pipeline(SimpleImputer(strategy='constant',fill_value=0),StandardScaler())
 #     categorical_pipe = make_pipeline(SimpleImputer(strategy='most_frequent'),encoder)
@@ -563,7 +566,7 @@ def create_embeddings(X, y):
 # In[33]:
 
 
-# X_embed.shape
+X.shape
 
 
 # * Visualize the embedding using a dimensionality reduction technique, [tSNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html). Please read up on it a bit if you have never heard of it before.
@@ -591,16 +594,22 @@ def compute_tsne(X):
 # In[35]:
 
 
-# X_embed_reduced.shape
+X.shape
 
 
 # In[36]:
 
 
-# X_embed_reduced[:,1]
+# X_embed_reduced.shape
 
 
 # In[37]:
+
+
+# X_embed_reduced[:,1]
+
+
+# In[38]:
 
 
 # Your implementation goes here
@@ -628,7 +637,7 @@ def plot_tsne(tsne_embeds, scores):
 #  * 'E': The clusters are all clearly delineated
 #  * 'F': No answer
 
-# In[38]:
+# In[39]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -639,7 +648,7 @@ q_2_4 = "A,D"
 # * Implement a function `plot_2_5` that evaluates the same algorithms as in question 2.2, and returns a heatmap (just as in question 2.2), but now using the SuperVectorizer.
 # 
 
-# In[39]:
+# In[40]:
 
 
 # Implement
@@ -657,7 +666,7 @@ def plot_2_5(X, y):
     #columns=[]
     scores=[]
     kf = KFold(shuffle=True, random_state=0)
-    X_str = X.copy()
+    X_str = X[:]
     X_str['division'] = X_str['division'].astype('|S')
     X_str['employee_position_title'] = X_str['employee_position_title'].astype('|S')
     X_str['underfilled_job_title'] = X_str['underfilled_job_title'].astype('|S')
@@ -682,6 +691,12 @@ def plot_2_5(X, y):
 # plot_2_5(X, y)
 
 
+# In[41]:
+
+
+X.shape
+
+
 # Interpret the result. Indicate which of the following are correct? Fill in your answer in `q_2_5`. Enter your answer as a comma-separated string without spaces, e.g. "A,B,C".
 # 
 #  * 'A': We get the best results so far, especially with the random forests and gradient boosting.
@@ -691,7 +706,7 @@ def plot_2_5(X, y):
 #  * 'E': No answer
 # 
 
-# In[40]:
+# In[42]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -711,7 +726,13 @@ q_2_5 = "A,C"
 # * Compute the permutation importances given the random forest pipeline and the test set. Use `random_state=0` and at least 10 iterations.
 # * Pass the tree-based and permutation importances to the plotting function `compare_importances` below.
 
-# In[41]:
+# In[43]:
+
+
+X.info()
+
+
+# In[44]:
 
 
 # Plotting function. Do not edit.
@@ -742,14 +763,58 @@ def compare_importances(rf_importance, perm_importance, rf_feature_names, featur
     plt.show()
 
 
-# In[42]:
+# In[45]:
 
 
 # Implement
+from sklearn.model_selection import train_test_split
+from sklearn.inspection import permutation_importance
+
 def plot_3_1(X, y):
     """ See detailed description above.
     """
-    pass
+    numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
+    categorical = X.select_dtypes(include=["category","object"]).columns.tolist()
+
+    X_imp = X[categorical + numerical]
+
+    # X_imp = X_imp.values
+
+    X_train, X_test, y_train, y_test = train_test_split(X_imp, y.values.ravel(), shuffle=True, random_state=0)
+
+    categorical_encoder = Pipeline([("imputer", SimpleImputer(strategy='most_frequent')),
+                                   ("onehot", OneHotEncoder(handle_unknown="ignore"))])
+    numerical_pipe = Pipeline([("imputer", SimpleImputer(strategy="constant",fill_value=0))])
+
+    preprocessing = ColumnTransformer(
+        [
+            ("cat", categorical_encoder, categorical),
+            ("num", numerical_pipe, numerical),
+        ]
+    )
+
+    rf = Pipeline(
+        [
+            ("preprocess", preprocessing),
+            ("reg", RandomForestRegressor(random_state=0)),
+        ]
+    )
+
+    rf.fit(X_train, y_train)
+    
+    tf = rf.named_steps["preprocess"].named_transformers_["cat"].named_steps["onehot"]
+    rf_feature_names = tf.get_feature_names_out(categorical)
+    rf_feature_names = np.r_[rf_feature_names, numerical]
+    
+    tree_feature_importances = rf.named_steps["reg"].feature_importances_
+    #sorted_idx = tree_feature_importances.argsort()
+    
+    #print(len(rf_feature_names))
+    permutation_importances = permutation_importance(rf, X_test, y_test, n_repeats=10, random_state=0, n_jobs=-1)
+    
+    compare_importances(tree_feature_importances,permutation_importances,rf_feature_names,X_test.columns)
+    
+# plot_3_1(X, y)
 
 
 # ### Question 3.2: Interpretation (2 point)
@@ -771,11 +836,11 @@ def plot_3_1(X, y):
 # 
 # 
 
-# In[43]:
+# In[46]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_3_2 = "J"
+q_3_2 = "A,C,D,E,I"
 
 
 # ## Part 4: Algoritmic bias (6 points)
@@ -790,7 +855,7 @@ q_3_2 = "J"
 # * Separate the test set predictions into different groups depending on the feature 'gender', and report the r2 score for each group.
 # * Implement a function `plot_4_1` which returns a simple bar chart visualizing both scores.
 
-# In[44]:
+# In[47]:
 
 
 #Implement
@@ -808,7 +873,7 @@ def plot_4_1(X, y):
 #  * 'E': The model is clearly biased.
 #  * 'F': No answer
 
-# In[45]:
+# In[48]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -823,7 +888,7 @@ q_4_1 = "F"
 # * and then visualise the results in the same way as in question 4.1 (as a bar chart).
 # * Interpret the results and explain them in `answer_q_4_2`.
 
-# In[46]:
+# In[49]:
 
 
 #Implement
@@ -842,14 +907,14 @@ def plot_4_2(X, y):
 #  * 'F': The model still is clearly biased.
 #  * 'G': No answer
 
-# In[47]:
+# In[50]:
 
 
 # Fill in your answer. Don't change the name of the variable
 q_4_2 = "G"
 
 
-# In[48]:
+# In[51]:
 
 
 print(time.time()-start_time)
