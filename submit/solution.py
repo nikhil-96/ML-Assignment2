@@ -103,19 +103,9 @@ y
 X.info()
 
 
-# In[9]:
-
-
-bool_series = pd.isnull(X["gender"]) 
-    
-# filtering data 
-# displaying data only with Gender = NaN 
-X[bool_series] 
-
-
 # Some categorical columns have a large number of possible values. Especially the job position titles can take many different values, with a highly skewed distribution. This will be tricky to handle.
 
-# In[10]:
+# In[9]:
 
 
 # Some values (job positions) are much more frequent than others
@@ -124,7 +114,7 @@ X['employee_position_title'].value_counts().plot(kind='barh', figsize=(5,70));
 
 # There are a few numeric features as well, with different distributions.
 
-# In[11]:
+# In[10]:
 
 
 # Distributions of numeric data
@@ -134,7 +124,7 @@ X.hist(layout=(20,4), figsize=(20,50));
 # Let's see how gender, experience (year first hired) and previous salary correlate with each other and the current salary. There are a few outliers visible. Salaries seem to correlate with last year's salary, but not so much with year of first hire. The effect of gender may require more study.
 # 
 
-# In[12]:
+# In[11]:
 
 
 import seaborn as sns
@@ -159,7 +149,7 @@ sns.pairplot(X_sub, hue="salary");
 # 
 # Note that you only need to build the pipeline, not fit it on the data. You are given the data X, but you cannot use it to train any models.
 
-# In[13]:
+# In[12]:
 
 
 # Implement
@@ -180,7 +170,7 @@ def simple_pipeline(X, model):
     """
     # List of numerical features. You get this for free :)
     numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
-    categorical = X.select_dtypes(include="category").columns.tolist()
+    # categorical = X.select_dtypes(include=["category","object"]).columns.tolist()
     
     numerical_pipe = Pipeline([
     ('imputer', SimpleImputer(strategy="constant",fill_value=0))])
@@ -190,8 +180,7 @@ def simple_pipeline(X, model):
     ('onehot', OneHotEncoder(sparse=False, handle_unknown='ignore'))])
     
     preprocessor = ColumnTransformer([
-        ('num', numerical_pipe, numerical),
-        ('cat', categorical_encoder, categorical)])
+        ('num', numerical_pipe, numerical)],remainder=categorical_encoder)
     
     return Pipeline([('preprocess', preprocessor), ('model', model)])
 
@@ -199,14 +188,14 @@ def simple_pipeline(X, model):
 # #### Sanity check
 # To be correct, this pipeline should be able to fit any model without error. Uncomment and run this code to do a sanity check.
 
-# In[14]:
+# In[13]:
 
 
 from sklearn.tree import DecisionTreeRegressor
 simple_pipeline(X, DecisionTreeRegressor()).fit(X,y)
 
 
-# In[15]:
+# In[14]:
 
 
 X
@@ -220,7 +209,7 @@ X
 # * Don't actually change the input data X. Make a copy if you want to remove features.
 # * As shown below, run your model and return a list with the 5 removed features.
 
-# In[16]:
+# In[15]:
 
 
 from sklearn.neighbors import KNeighborsRegressor
@@ -270,10 +259,10 @@ def backward_selection(X, y, pipe, nr_remove=5):
 # backward_selection(X, y, simple_pipeline, nr_remove=5)
 
 
-# In[17]:
+# In[16]:
 
 
-print(X.columns)
+X.shape
 
 
 # ### Question 1.3: Interpretation (2 points)
@@ -289,7 +278,7 @@ print(X.columns)
 #  * 'H': The feature 'date_first_hired' is more informative as a category feature than a numeric timestamp, so it should be kept. 
 #  * 'I': No answer
 
-# In[18]:
+# In[17]:
 
 
 # Fill in the correct answer. Don't change the name of the variable
@@ -301,32 +290,30 @@ q_1_3 = "B,D,F"
 # 
 # Next question: How many features are still being constructed by your `simple_pipeline` (i.e. on how many features is the classifier trained)? Fill in this number in `q_1_4`.
 
-# In[19]:
+# In[18]:
 
 
 cols = [c for c in X.columns if c.lower() not in ['full_name','department','date_first_hired','2016_gross_pay_received', '2016_overtime_pay']]
 X = X[cols]
 
 
-# In[20]:
+# In[19]:
 
 
 knn = KNeighborsRegressor(n_neighbors=3, n_jobs=-1)
 reg = simple_pipeline(X, knn).fit(X, y)
 
 
-# In[21]:
+# In[20]:
 
 
 numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
-categorical = X.select_dtypes(include="category").columns.tolist()
-    
-tf = reg.named_steps["preprocess"].named_transformers_["cat"].named_steps["onehot"]
-reg_feature_names = tf.get_feature_names_out(categorical)
+tf = reg.named_steps["preprocess"].named_transformers_["remainder"].named_steps["onehot"]
+reg_feature_names = tf.get_feature_names_out()
 reg_feature_names = np.r_[reg_feature_names, numerical]
 
 
-# In[22]:
+# In[21]:
 
 
 # Fill in the correct answer (should be an integer). Don't change the name of the variable
@@ -340,7 +327,7 @@ q_1_4 = len(reg_feature_names)
 # - Allow to choose a feature scaling method for numeric features. The default is standard scaling. 'None' means no scaling
 # - Allow to choose a feature encoding method for categorical features. The default is one-hot encoding.
 
-# In[23]:
+# In[52]:
 
 
 # Implement
@@ -355,51 +342,41 @@ def flexible_pipeline(X, model, scaler=StandardScaler(), encoder=OneHotEncoder()
     encoder -- any scikit-learn category encoding method (Optional)
     Returns: a scikit-learn pipeline which preprocesses the data and then runs the trained model
     """
-    numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
-    categorical = X.select_dtypes(include="category").columns.tolist()
-    
+    numerical = X.select_dtypes(include=["int64"]).columns.tolist()
+    # categorical = X.select_dtypes(include=["category","object"]).columns.tolist()
+
     numerical_pipe = Pipeline([
     ('imputer', SimpleImputer(strategy='constant',fill_value=0)),
     ('scaler', scaler)])
     
     if(encoder.__class__.__name__ == "TargetEncoder"):
         categorical_encoder = Pipeline([
-        ('imputer', SimpleImputer(strategy='most_frequent')),
-        ('target', encoder),('imputer1', SimpleImputer(strategy='mean'))])
+        ('mf_imputer', SimpleImputer(strategy='most_frequent')),
+        ('target', encoder),('mean_imputer', SimpleImputer(strategy='mean'))])
     else:
         categorical_encoder = Pipeline([
-        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('mf_imputer', SimpleImputer(strategy='most_frequent')),
         ('encoder', encoder)])
     
     preprocessor = ColumnTransformer([
-        ('num', numerical_pipe, numerical),
-        ('cat', categorical_encoder, categorical)])
+        ('num', numerical_pipe, numerical)],remainder=categorical_encoder)
     
     return Pipeline([('preprocess', preprocessor), ('model', model)])
-
-#     numeric_pipe = make_pipeline(SimpleImputer(strategy='constant',fill_value=0),StandardScaler())
-#     categorical_pipe = make_pipeline(SimpleImputer(strategy='most_frequent'),encoder)
-    
-#     preprocessor = make_column_transformer((categorical_pipe,
-#                                         categorical), 
-#                                         (numeric_pipe,
-#                                         numerical))
-#     return make_pipeline(preprocessor, model)
 
 
 # #### Sanity check
 # To be correct, this pipeline should be able to fit any model and encoder without error. Uncomment and run this code to do a sanity check.
 
-# In[24]:
+# In[23]:
 
 
 X.info()
 
 
-# In[25]:
+# In[24]:
 
 
-flexible_pipeline(X, DecisionTreeRegressor(random_state=0), encoder=OneHotEncoder()).fit(X,y)
+flexible_pipeline(X, DecisionTreeRegressor(random_state=0), encoder=OneHotEncoder(handle_unknown = 'ignore')).fit(X,y)
 
 
 # ### Question 2.2: Comparing encoders (4 points)
@@ -423,13 +400,13 @@ flexible_pipeline(X, DecisionTreeRegressor(random_state=0), encoder=OneHotEncode
 # Note 2: TargetEncoding is part of the `category_encoders` extension of scikit-learn. [Read more about it.](https://contrib.scikit-learn.org/category_encoders/targetencoder.html)
 # We found that the implementation may have a bug that returns NaN values. You can work around it by wrapping it in a small pipeline followed by a SimpleImputer that replaces NaNs with the mean of the encoded values.
 
+# In[25]:
+
+
+y.shape
+
+
 # In[26]:
-
-
-X.shape
-
-
-# In[27]:
 
 
 ### Helper plotting function. Do not change.
@@ -446,7 +423,7 @@ def heatmap(columns, rows, scores):
     sns.heatmap(df, cmap='RdYlGn_r', linewidths=0.5, annot=True, fmt=".3f")
 
 
-# In[28]:
+# In[27]:
 
 
 from sklearn.model_selection import KFold
@@ -463,13 +440,12 @@ def plot_2_2(X, y):
               GradientBoostingRegressor(random_state=0)]
     encoders = [OneHotEncoder(sparse=False, handle_unknown='ignore'), OrdinalEncoder(handle_unknown='use_encoded_value',
                         unknown_value=-1), TargetEncoder()]
-    #rows=[]
-    #columns=[]
+    
     scores=[]
     kf = KFold(shuffle=True, random_state=0)
     for model in models:
         for encoder in encoders:
-            score = np.mean(cross_val_score(flexible_pipeline(X, model, encoder), X, y, cv=kf, scoring='r2', n_jobs=-1))
+            score = np.mean(cross_val_score(flexible_pipeline(X, model, encoder=encoder), X, y, cv=kf, scoring='r2', n_jobs=-1))
             #rows.append(model.__class__.__name__)
             #columns.append(encoder.__class__.__name__)
             scores.append(score)
@@ -490,10 +466,10 @@ def plot_2_2(X, y):
 # plot_2_2(X, y)
 
 
-# In[29]:
+# In[28]:
 
 
-X.info()
+y
 
 
 # ### Question 2.3: Interpretation (2 points)
@@ -519,11 +495,11 @@ X.info()
 #  * 'L': No answer.
 # 
 
-# In[30]:
+# In[29]:
 
 
 # Fill in your explanation. Don't change the name of the variable
-q_2_3 = "A,E,I,K"
+q_2_3 = "A,C,E,I"
 
 
 # ### Question 2.4: Categorical Feature Embeddings (6 points)
@@ -533,13 +509,13 @@ q_2_3 = "A,E,I,K"
 #   * Note: The SuperVectorizer only works on string features, so create a copy of X and convert all non-numeric features to strings.
 # 
 
-# In[31]:
+# In[30]:
 
 
 X.info()
 
 
-# In[32]:
+# In[31]:
 
 
 from dirty_cat import SuperVectorizer
@@ -552,9 +528,8 @@ def create_embeddings(X, y):
   y -- The target values
   """
     X_str = X.copy()
-    X_str['division'] = X_str['division'].astype('|S')
-    X_str['employee_position_title'] = X_str['employee_position_title'].astype('|S')
-    X_str['underfilled_job_title'] = X_str['underfilled_job_title'].astype('|S')
+    categorical = X.select_dtypes(exclude=["int64"]).columns.tolist()
+    X_str[categorical] = X_str[categorical].astype(str)
     
     sup_vec = SuperVectorizer(auto_cast=True)
     X_enc = sup_vec.fit_transform(X_str, y)
@@ -563,10 +538,10 @@ def create_embeddings(X, y):
 # X_embed = create_embeddings(X, y)
 
 
-# In[33]:
+# In[32]:
 
 
-X.shape
+# X_embed.shape
 
 
 # * Visualize the embedding using a dimensionality reduction technique, [tSNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html). Please read up on it a bit if you have never heard of it before.
@@ -575,7 +550,7 @@ X.shape
 #   * Make sure that you don't overwite `X`
 # * Implement a function `plot_tsne` that plots the 2D vector as a scatter plot, color-coded by the salary
 
-# In[34]:
+# In[33]:
 
 
 from sklearn.manifold import TSNE
@@ -591,25 +566,25 @@ def compute_tsne(X):
 # X_embed_reduced = compute_tsne(X_embed)
 
 
-# In[35]:
+# In[34]:
 
 
 X.shape
 
 
-# In[36]:
+# In[35]:
 
 
 # X_embed_reduced.shape
 
 
-# In[37]:
+# In[36]:
 
 
 # X_embed_reduced[:,1]
 
 
-# In[38]:
+# In[37]:
 
 
 # Your implementation goes here
@@ -637,7 +612,7 @@ def plot_tsne(tsne_embeds, scores):
 #  * 'E': The clusters are all clearly delineated
 #  * 'F': No answer
 
-# In[39]:
+# In[38]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -648,7 +623,7 @@ q_2_4 = "A,D"
 # * Implement a function `plot_2_5` that evaluates the same algorithms as in question 2.2, and returns a heatmap (just as in question 2.2), but now using the SuperVectorizer.
 # 
 
-# In[40]:
+# In[39]:
 
 
 # Implement
@@ -661,21 +636,22 @@ def plot_2_5(X, y):
     """
     models = [Ridge(random_state=0), Lasso(random_state=0), RandomForestRegressor(random_state=0), 
               GradientBoostingRegressor(random_state=0)]
-    encoders = [SuperVectorizer(auto_cast=True)]
-    #rows=[]
-    #columns=[]
+    encoders = []
+    
+    categorical = X.select_dtypes(exclude=["int64"]).columns.tolist()
+    X_str = X.copy()
+    X_str[categorical] = X_str[categorical].astype(str)
+    print(X_str.info())
+    
     scores=[]
     kf = KFold(shuffle=True, random_state=0)
-    X_str = X[:]
-    X_str['division'] = X_str['division'].astype('|S')
-    X_str['employee_position_title'] = X_str['employee_position_title'].astype('|S')
-    X_str['underfilled_job_title'] = X_str['underfilled_job_title'].astype('|S')
     for model in models:
-        pipeline = make_pipeline(SuperVectorizer(auto_cast=True), model)
-        score = np.mean(cross_val_score(pipeline, X_str, y, cv=kf, scoring='r2', n_jobs=-1))
+        pipe = flexible_pipeline(X_str, model, encoder=SuperVectorizer(auto_cast=True))
+        score = np.mean(cross_val_score(pipe, X_str, y, cv=kf, scoring='r2', n_jobs=-1))
         #rows.append(model.__class__.__name__)
         #columns.append(encoder.__class__.__name__)
         scores.append(score)
+            
     INDEX = [
     'Ridge',
     'Lasso',
@@ -691,7 +667,7 @@ def plot_2_5(X, y):
 # plot_2_5(X, y)
 
 
-# In[41]:
+# In[40]:
 
 
 X.shape
@@ -706,7 +682,7 @@ X.shape
 #  * 'E': No answer
 # 
 
-# In[42]:
+# In[41]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -726,13 +702,13 @@ q_2_5 = "A,C"
 # * Compute the permutation importances given the random forest pipeline and the test set. Use `random_state=0` and at least 10 iterations.
 # * Pass the tree-based and permutation importances to the plotting function `compare_importances` below.
 
-# In[43]:
+# In[42]:
 
 
 X.info()
 
 
-# In[44]:
+# In[43]:
 
 
 # Plotting function. Do not edit.
@@ -763,7 +739,7 @@ def compare_importances(rf_importance, perm_importance, rf_feature_names, featur
     plt.show()
 
 
-# In[45]:
+# In[44]:
 
 
 # Implement
@@ -773,25 +749,25 @@ from sklearn.inspection import permutation_importance
 def plot_3_1(X, y):
     """ See detailed description above.
     """
-    numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
-    categorical = X.select_dtypes(include=["category","object"]).columns.tolist()
-
-    X_imp = X[categorical + numerical]
+    numerical = X.select_dtypes(include=["int64"]).columns.tolist()
+    categorical = X.select_dtypes(exclude=["int64"]).columns.tolist()
 
     # X_imp = X_imp.values
+#     X['division'] = X['division'].astype('|S')
+#     X['employee_position_title'] = X['employee_position_title'].astype('|S')
+#     X['underfilled_job_title'] = X['underfilled_job_title'].astype('|S')
 
-    X_train, X_test, y_train, y_test = train_test_split(X_imp, y.values.ravel(), shuffle=True, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y.values.ravel(), shuffle=True, random_state=0)
 
     categorical_encoder = Pipeline([("imputer", SimpleImputer(strategy='most_frequent')),
-                                   ("onehot", OneHotEncoder(handle_unknown="ignore"))])
+                                   ("onehot", OneHotEncoder(sparse=False, handle_unknown='ignore'))])
     numerical_pipe = Pipeline([("imputer", SimpleImputer(strategy="constant",fill_value=0))])
 
     preprocessing = ColumnTransformer(
         [
-            ("cat", categorical_encoder, categorical),
             ("num", numerical_pipe, numerical),
-        ]
-    )
+            ("cat", categorical_encoder, categorical)
+        ])
 
     rf = Pipeline(
         [
@@ -836,7 +812,7 @@ def plot_3_1(X, y):
 # 
 # 
 
-# In[46]:
+# In[45]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -855,14 +831,40 @@ q_3_2 = "A,C,D,E,I"
 # * Separate the test set predictions into different groups depending on the feature 'gender', and report the r2 score for each group.
 # * Implement a function `plot_4_1` which returns a simple bar chart visualizing both scores.
 
-# In[47]:
+# In[66]:
 
 
 #Implement
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import r2_score
 def plot_4_1(X, y):
     """ Returns a bar chart of the R2 measured, grouped by the value for the 'gender' feature
     """
-    pass
+    rf = RandomForestRegressor(n_estimators=100, min_samples_split=10, max_features=0.1, random_state=0)
+    pipe = flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown = 'ignore'))
+    pred = cross_val_predict(pipe, X, y, cv=3, n_jobs=-1)
+    male_indices = list(np.where(X["gender"] != 'F')[0])
+    female_indices = list(np.where(X["gender"] == 'F')[0])
+    male_r2 = r2_score(y[male_indices], pred[male_indices])
+    female_r2 = r2_score(y[female_indices], pred[female_indices])
+    print(male_r2)
+    print(female_r2)
+    
+    # Make a Bar plot
+    height = [female_r2, male_r2]
+    bars = ('Female', 'Male')
+    y_pos = np.arange(len(bars))
+
+    # Create bars
+    plt.bar(y_pos, height)
+
+    # Create names on the x-axis
+    plt.xticks(y_pos, bars)
+
+    # Show graphic
+    plt.show()
+
+# plot_4_1(X, y)
 
 
 # Interpret the results. Indicate which of the following are correct. Fill in your answer in `q_4_1`. Enter your answer as a comma-separated values without spaces, e.g. "A,B,C"
@@ -873,11 +875,11 @@ def plot_4_1(X, y):
 #  * 'E': The model is clearly biased.
 #  * 'F': No answer
 
-# In[48]:
+# In[ ]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_1 = "F"
+q_4_1 = "A,C,E"
 
 
 # ### Question 4.2: Instance reweighting (3 points)
@@ -888,14 +890,43 @@ q_4_1 = "F"
 # * and then visualise the results in the same way as in question 4.1 (as a bar chart).
 # * Interpret the results and explain them in `answer_q_4_2`.
 
-# In[49]:
+# In[72]:
 
 
 #Implement
 def plot_4_2(X, y):
     """ Returns a bar chart of the score measured, grouped by the value for the 'gender' feature
     """
-    pass
+    rf = RandomForestRegressor(n_estimators=100, max_features=0.1, min_samples_split=10, random_state=0)
+    pred = cross_val_predict(flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown='ignore')), X, y, cv=3, n_jobs=-1)
+    male_indices = list(np.where(X["gender"] != 'F')[0])
+    female_indices = list(np.where(X["gender"] == 'F')[0])
+    print(len(female_indices))
+    print(len(male_indices))
+    print(len(y))
+    female_weights = np.full(len(female_indices),len(y)/len(female_indices))
+    male_weights = np.full(len(male_indices),len(y)/len(male_indices))
+    
+    male_r2 = r2_score(y[male_indices], pred[male_indices], sample_weight=male_weights)
+    female_r2 = r2_score(y[female_indices], pred[female_indices], sample_weight=female_weights)
+    print(male_r2)
+    print(female_r2)
+    
+    # Make a Bar plot
+    height = [female_r2, male_r2]
+    bars = ('Female', 'Male')
+    y_pos = np.arange(len(bars))
+
+    # Create bars
+    plt.bar(y_pos, height)
+
+    # Create names on the x-axis
+    plt.xticks(y_pos, bars)
+
+    # Show graphic
+    plt.show()
+
+# plot_4_2(X, y)
 
 
 # Interpret the results. Indicate which of the following are correct. Fill in your answer in `q_4_2`. Enter your answer as a comma-separated values without spaces, e.g. "A,B,C"
@@ -907,14 +938,14 @@ def plot_4_2(X, y):
 #  * 'F': The model still is clearly biased.
 #  * 'G': No answer
 
-# In[50]:
+# In[71]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_2 = "G"
+q_4_2 = "E"
 
 
-# In[51]:
+# In[ ]:
 
 
 print(time.time()-start_time)
@@ -925,4 +956,4 @@ print(time.time()-start_time)
 
 
 
-last_edit = 'March 21, 2022'
+last_edit = 'March 23, 2022'
