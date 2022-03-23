@@ -41,6 +41,10 @@ for line in source.split('\n'):
         line = "# {}".format(line)
     if line.startswith("get_ipython"):
         line = "# {}".format(line)
+    if line.startswith("cols"):
+        line = "# {}".format(line)
+    if line.startswith("X = X[cols]"):
+        line = "# {}".format(line)
     new_source_lines.append(line)
 source = "\n".join(new_source_lines)
 

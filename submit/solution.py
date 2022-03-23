@@ -293,8 +293,8 @@ q_1_3 = "B,D,F"
 # In[18]:
 
 
-cols = [c for c in X.columns if c.lower() not in ['full_name','department','date_first_hired','2016_gross_pay_received', '2016_overtime_pay']]
-X = X[cols]
+# cols = [c for c in X.columns if c.lower() not in ['full_name','department','date_first_hired','2016_gross_pay_received', '2016_overtime_pay']]
+# X = X[cols]
 
 
 # In[19]:
