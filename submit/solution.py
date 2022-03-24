@@ -226,32 +226,23 @@ def backward_selection(X, y, pipe, nr_remove=5):
     nr_remove -- The number of features to remove
     """
     features = list(X.columns)
-    #print(features)
     ss = ShuffleSplit(n_splits=10, train_size=0.4, test_size=0.1, random_state=0)
     knn = KNeighborsRegressor(n_neighbors=3, n_jobs=-1)
     least_useful_features = []
     while(nr_remove):
-        orig_acc = np.mean(cross_val_score(pipe(X[features], knn), X[features], y, cv=ss, scoring='r2', n_jobs=-1))
+        acc_loss = 1 - np.mean(cross_val_score(pipe(X[features], knn), X[features], y, cv=ss, scoring='r2', n_jobs=-1))
         #print(orig_acc,features)
         for i in features:
             #X_dummy = X_feature.drop([i], axis=1)
             features_d = features[:]
             features_d.remove(i)
-            #print("Hi",features)
-            acc = np.mean(cross_val_score(pipe(X[features_d], knn), X[features_d], y, cv=ss, scoring='r2', n_jobs=-1))
-            if acc >= orig_acc:
-                orig_acc = acc
-                feature = i
-                #print("Hello",feature)
-            else:
+            loss = 1 - np.mean(cross_val_score(pipe(X[features_d], knn), X[features_d], y, cv=ss, scoring='r2', n_jobs=-1))
+            if loss <= acc_loss:
+                acc_loss = loss
                 feature = i
         
-        #print(feature)
         least_useful_features.append(feature)
-        #print("bla", features)
         features.remove(feature)
-        # X_feature = X_feature.drop([feature], axis=1)
-        #print(X_feature.columns)
         nr_remove-=1
 
     return least_useful_features
@@ -282,7 +273,7 @@ X.shape
 
 
 # Fill in the correct answer. Don't change the name of the variable
-q_1_3 = "B,D,F"
+q_1_3 = "A,B,D,F"
 
 
 # ### Question 1.4: Dimensionality (2 points)
@@ -311,13 +302,14 @@ numerical = X.select_dtypes(exclude=["category","object"]).columns.tolist()
 tf = reg.named_steps["preprocess"].named_transformers_["remainder"].named_steps["onehot"]
 reg_feature_names = tf.get_feature_names_out()
 reg_feature_names = np.r_[reg_feature_names, numerical]
+no_features = len(reg_feature_names)
 
 
 # In[21]:
 
 
 # Fill in the correct answer (should be an integer). Don't change the name of the variable
-q_1_4 = len(reg_feature_names)
+q_1_4 = 1206
 
 
 # ## Part 2: Encoders (16 points)
@@ -327,7 +319,7 @@ q_1_4 = len(reg_feature_names)
 # - Allow to choose a feature scaling method for numeric features. The default is standard scaling. 'None' means no scaling
 # - Allow to choose a feature encoding method for categorical features. The default is one-hot encoding.
 
-# In[52]:
+# In[22]:
 
 
 # Implement
@@ -458,7 +450,7 @@ def plot_2_2(X, y):
     COLUMNS = [
     'OneHotEncoder', 'OrdinalEncoder', 'TargetEncoder'
         ]
-    print(scores)
+    
     heatmap(COLUMNS,INDEX,np.array(scores).reshape(-1, 3))
     #pd.DataFrame(np.array(scores).reshape(-1, 3), index=INDEX, columns=COLUMNS)
     #heatmap(encoders, models, scores)
@@ -499,7 +491,7 @@ y
 
 
 # Fill in your explanation. Don't change the name of the variable
-q_2_3 = "A,C,E,I"
+q_2_3 = "A,C,D,E(?),H,I"
 
 
 # ### Question 2.4: Categorical Feature Embeddings (6 points)
@@ -510,12 +502,6 @@ q_2_3 = "A,C,E,I"
 # 
 
 # In[30]:
-
-
-X.info()
-
-
-# In[31]:
 
 
 from dirty_cat import SuperVectorizer
@@ -538,7 +524,7 @@ def create_embeddings(X, y):
 # X_embed = create_embeddings(X, y)
 
 
-# In[32]:
+# In[31]:
 
 
 # X_embed.shape
@@ -550,7 +536,7 @@ def create_embeddings(X, y):
 #   * Make sure that you don't overwite `X`
 # * Implement a function `plot_tsne` that plots the 2D vector as a scatter plot, color-coded by the salary
 
-# In[33]:
+# In[32]:
 
 
 from sklearn.manifold import TSNE
@@ -566,25 +552,25 @@ def compute_tsne(X):
 # X_embed_reduced = compute_tsne(X_embed)
 
 
-# In[34]:
+# In[33]:
 
 
 X.shape
 
 
-# In[35]:
+# In[34]:
 
 
 # X_embed_reduced.shape
 
 
-# In[36]:
+# In[35]:
 
 
 # X_embed_reduced[:,1]
 
 
-# In[37]:
+# In[36]:
 
 
 # Your implementation goes here
@@ -612,7 +598,7 @@ def plot_tsne(tsne_embeds, scores):
 #  * 'E': The clusters are all clearly delineated
 #  * 'F': No answer
 
-# In[38]:
+# In[37]:
 
 
 # Fill in your answer. Don't change the name of the variable
@@ -623,7 +609,7 @@ q_2_4 = "A,D"
 # * Implement a function `plot_2_5` that evaluates the same algorithms as in question 2.2, and returns a heatmap (just as in question 2.2), but now using the SuperVectorizer.
 # 
 
-# In[39]:
+# In[38]:
 
 
 # Implement
@@ -641,7 +627,6 @@ def plot_2_5(X, y):
     categorical = X.select_dtypes(exclude=["int64"]).columns.tolist()
     X_str = X.copy()
     X_str[categorical] = X_str[categorical].astype(str)
-    print(X_str.info())
     
     scores=[]
     kf = KFold(shuffle=True, random_state=0)
@@ -661,13 +646,13 @@ def plot_2_5(X, y):
     COLUMNS = [
     'SuperVectorizer'
         ]
-    print(scores)
+    
     heatmap(COLUMNS,INDEX,np.array(scores).reshape(-1, 1))
 
 # plot_2_5(X, y)
 
 
-# In[40]:
+# In[39]:
 
 
 X.shape
@@ -682,11 +667,11 @@ X.shape
 #  * 'E': No answer
 # 
 
-# In[41]:
+# In[40]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_2_5 = "A,C"
+q_2_5 = "A(?),C"
 
 
 # ## Part 3: Feature importance (6 points)
@@ -702,13 +687,7 @@ q_2_5 = "A,C"
 # * Compute the permutation importances given the random forest pipeline and the test set. Use `random_state=0` and at least 10 iterations.
 # * Pass the tree-based and permutation importances to the plotting function `compare_importances` below.
 
-# In[42]:
-
-
-X.info()
-
-
-# In[43]:
+# In[41]:
 
 
 # Plotting function. Do not edit.
@@ -739,12 +718,13 @@ def compare_importances(rf_importance, perm_importance, rf_feature_names, featur
     plt.show()
 
 
-# In[44]:
+# In[42]:
 
 
 # Implement
 from sklearn.model_selection import train_test_split
 from sklearn.inspection import permutation_importance
+from sklearn.ensemble import RandomForestRegressor
 
 def plot_3_1(X, y):
     """ See detailed description above.
@@ -752,37 +732,17 @@ def plot_3_1(X, y):
     numerical = X.select_dtypes(include=["int64"]).columns.tolist()
     categorical = X.select_dtypes(exclude=["int64"]).columns.tolist()
 
-    # X_imp = X_imp.values
-#     X['division'] = X['division'].astype('|S')
-#     X['employee_position_title'] = X['employee_position_title'].astype('|S')
-#     X['underfilled_job_title'] = X['underfilled_job_title'].astype('|S')
-
     X_train, X_test, y_train, y_test = train_test_split(X, y.values.ravel(), shuffle=True, random_state=0)
-
-    categorical_encoder = Pipeline([("imputer", SimpleImputer(strategy='most_frequent')),
-                                   ("onehot", OneHotEncoder(sparse=False, handle_unknown='ignore'))])
-    numerical_pipe = Pipeline([("imputer", SimpleImputer(strategy="constant",fill_value=0))])
-
-    preprocessing = ColumnTransformer(
-        [
-            ("num", numerical_pipe, numerical),
-            ("cat", categorical_encoder, categorical)
-        ])
-
-    rf = Pipeline(
-        [
-            ("preprocess", preprocessing),
-            ("reg", RandomForestRegressor(random_state=0)),
-        ]
-    )
+    
+    rf = flexible_pipeline(X, RandomForestRegressor(random_state=0), scaler=None, encoder=OneHotEncoder(sparse=False, handle_unknown='ignore'))
 
     rf.fit(X_train, y_train)
     
-    tf = rf.named_steps["preprocess"].named_transformers_["cat"].named_steps["onehot"]
+    tf = rf.named_steps["preprocess"].named_transformers_["remainder"].named_steps["encoder"]
     rf_feature_names = tf.get_feature_names_out(categorical)
     rf_feature_names = np.r_[rf_feature_names, numerical]
     
-    tree_feature_importances = rf.named_steps["reg"].feature_importances_
+    tree_feature_importances = rf.named_steps["model"].feature_importances_
     #sorted_idx = tree_feature_importances.argsort()
     
     #print(len(rf_feature_names))
@@ -812,11 +772,11 @@ def plot_3_1(X, y):
 # 
 # 
 
-# In[45]:
+# In[43]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_3_2 = "A,C,D,E,I"
+q_3_2 = "A,C,D,I"
 
 
 # ## Part 4: Algoritmic bias (6 points)
@@ -831,7 +791,7 @@ q_3_2 = "A,C,D,E,I"
 # * Separate the test set predictions into different groups depending on the feature 'gender', and report the r2 score for each group.
 # * Implement a function `plot_4_1` which returns a simple bar chart visualizing both scores.
 
-# In[66]:
+# In[44]:
 
 
 #Implement
@@ -875,11 +835,11 @@ def plot_4_1(X, y):
 #  * 'E': The model is clearly biased.
 #  * 'F': No answer
 
-# In[ ]:
+# In[45]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_1 = "A,C,E"
+q_4_1 = "B,D"
 
 
 # ### Question 4.2: Instance reweighting (3 points)
@@ -890,25 +850,28 @@ q_4_1 = "A,C,E"
 # * and then visualise the results in the same way as in question 4.1 (as a bar chart).
 # * Interpret the results and explain them in `answer_q_4_2`.
 
-# In[72]:
+# In[46]:
 
 
 #Implement
 def plot_4_2(X, y):
     """ Returns a bar chart of the score measured, grouped by the value for the 'gender' feature
     """
-    rf = RandomForestRegressor(n_estimators=100, max_features=0.1, min_samples_split=10, random_state=0)
-    pred = cross_val_predict(flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown='ignore')), X, y, cv=3, n_jobs=-1)
     male_indices = list(np.where(X["gender"] != 'F')[0])
     female_indices = list(np.where(X["gender"] == 'F')[0])
-    print(len(female_indices))
-    print(len(male_indices))
-    print(len(y))
-    female_weights = np.full(len(female_indices),len(y)/len(female_indices))
-    male_weights = np.full(len(male_indices),len(y)/len(male_indices))
     
-    male_r2 = r2_score(y[male_indices], pred[male_indices], sample_weight=male_weights)
-    female_r2 = r2_score(y[female_indices], pred[female_indices], sample_weight=female_weights)
+    female_weight = len(y)/len(female_indices)
+    male_weight = len(y)/len(male_indices)
+    weights = np.empty(len(y), dtype=float)
+    weights[male_indices] = male_weight
+    weights[female_indices] = female_weight
+    
+    rf = RandomForestRegressor(n_estimators=100, max_features=0.1, min_samples_split=10, random_state=0)
+    pipe = flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown='ignore'))
+    pred = cross_val_predict(pipe, X, y, cv=3, fit_params={'model__sample_weight': weights}, n_jobs=-1)
+    
+    male_r2 = r2_score(y[male_indices], pred[male_indices])
+    female_r2 = r2_score(y[female_indices], pred[female_indices])
     print(male_r2)
     print(female_r2)
     
@@ -938,14 +901,14 @@ def plot_4_2(X, y):
 #  * 'F': The model still is clearly biased.
 #  * 'G': No answer
 
-# In[71]:
+# In[47]:
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_2 = "E"
+q_4_2 = "C,E"
 
 
-# In[ ]:
+# In[48]:
 
 
 print(time.time()-start_time)
@@ -956,4 +919,4 @@ print(time.time()-start_time)
 
 
 
-last_edit = 'March 23, 2022'
+last_edit = 'March 24, 2022'
