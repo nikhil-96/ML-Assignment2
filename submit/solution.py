@@ -491,7 +491,7 @@ y
 
 
 # Fill in your explanation. Don't change the name of the variable
-q_2_3 = "A,C,D,E(?),H,I"
+q_2_3 = "A,C,D,E,H,I"
 
 
 # ### Question 2.4: Categorical Feature Embeddings (6 points)
@@ -671,7 +671,7 @@ X.shape
 
 
 # Fill in your answer. Don't change the name of the variable
-q_2_5 = "A(?),C"
+q_2_5 = "C"
 
 
 # ## Part 3: Feature importance (6 points)
@@ -919,4 +919,4 @@ print(time.time()-start_time)
 
 
 
-last_edit = 'March 24, 2022'
+last_edit = 'March 25, 2022'
