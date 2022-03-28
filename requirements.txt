@@ -12,3 +12,4 @@ tqdm
 seaborn
 category_encoders
 dirty_cat
+markupsafe==2.0.1

@@ -803,12 +803,16 @@ def plot_4_1(X, y):
     rf = RandomForestRegressor(n_estimators=100, min_samples_split=10, max_features=0.1, random_state=0)
     pipe = flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown = 'ignore'))
     pred = cross_val_predict(pipe, X, y, cv=3, n_jobs=-1)
+    #For missing Gender values, replacing it with most-frequent 'M'
     male_indices = list(np.where(X["gender"] != 'F')[0])
     female_indices = list(np.where(X["gender"] == 'F')[0])
     male_r2 = r2_score(y[male_indices], pred[male_indices])
     female_r2 = r2_score(y[female_indices], pred[female_indices])
-    print(male_r2)
-    print(female_r2)
+    
+    # function to add value labels
+    def addlabels(x,y):
+        for i in range(len(x)):
+            plt.text(i, y[i]+0.01, y[i], ha = 'center')
     
     # Make a Bar plot
     height = [female_r2, male_r2]
@@ -816,7 +820,15 @@ def plot_4_1(X, y):
     y_pos = np.arange(len(bars))
 
     # Create bars
+    plt.figure(figsize=(6,5))
     plt.bar(y_pos, height)
+    
+    # Adding value labels
+    addlabels(bars, height)
+    
+    # giving X and Y labels
+    plt.xlabel("Gender")
+    plt.ylabel("r2_score")
 
     # Create names on the x-axis
     plt.xticks(y_pos, bars)
@@ -872,8 +884,11 @@ def plot_4_2(X, y):
     
     male_r2 = r2_score(y[male_indices], pred[male_indices])
     female_r2 = r2_score(y[female_indices], pred[female_indices])
-    print(male_r2)
-    print(female_r2)
+    
+    # function to add value labels
+    def addlabels(x,y):
+        for i in range(len(x)):
+            plt.text(i, y[i]+0.01, y[i], ha = 'center')
     
     # Make a Bar plot
     height = [female_r2, male_r2]
@@ -881,7 +896,15 @@ def plot_4_2(X, y):
     y_pos = np.arange(len(bars))
 
     # Create bars
+    plt.figure(figsize=(6,5))
     plt.bar(y_pos, height)
+    
+    # Adding value labels
+    addlabels(bars, height)
+    
+    # giving X and Y labels
+    plt.xlabel("Gender")
+    plt.ylabel("r2_score")
 
     # Create names on the x-axis
     plt.xticks(y_pos, bars)
@@ -919,4 +942,4 @@ print(time.time()-start_time)
 
 
 
-last_edit = 'March 25, 2022'
+last_edit = 'March 28, 2022'
