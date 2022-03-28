@@ -740,7 +740,7 @@ def plot_3_1(X, y):
     
     tf = rf.named_steps["preprocess"].named_transformers_["remainder"].named_steps["encoder"]
     rf_feature_names = tf.get_feature_names_out(categorical)
-    rf_feature_names = np.r_[rf_feature_names, numerical]
+    rf_feature_names = np.r_[numerical, rf_feature_names]
     
     tree_feature_importances = rf.named_steps["model"].feature_importances_
     #sorted_idx = tree_feature_importances.argsort()
@@ -776,7 +776,7 @@ def plot_3_1(X, y):
 
 
 # Fill in your answer. Don't change the name of the variable
-q_3_2 = "A,C,D,I"
+q_3_2 = "A,B,D,E,I"
 
 
 # ## Part 4: Algoritmic bias (6 points)
@@ -801,7 +801,7 @@ def plot_4_1(X, y):
     """ Returns a bar chart of the R2 measured, grouped by the value for the 'gender' feature
     """
     rf = RandomForestRegressor(n_estimators=100, min_samples_split=10, max_features=0.1, random_state=0)
-    pipe = flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown = 'ignore'))
+    pipe = flexible_pipeline(X, rf, encoder=TargetEncoder())
     pred = cross_val_predict(pipe, X, y, cv=3, n_jobs=-1)
     #For missing Gender values, replacing it with most-frequent 'M'
     male_indices = list(np.where(X["gender"] != 'F')[0])
@@ -851,7 +851,7 @@ def plot_4_1(X, y):
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_1 = "B,D"
+q_4_1 = "A,E"
 
 
 # ### Question 4.2: Instance reweighting (3 points)
@@ -879,7 +879,7 @@ def plot_4_2(X, y):
     weights[female_indices] = female_weight
     
     rf = RandomForestRegressor(n_estimators=100, max_features=0.1, min_samples_split=10, random_state=0)
-    pipe = flexible_pipeline(X, rf, encoder=OneHotEncoder(sparse=False, handle_unknown='ignore'))
+    pipe = flexible_pipeline(X, rf, encoder=TargetEncoder())
     pred = cross_val_predict(pipe, X, y, cv=3, fit_params={'model__sample_weight': weights}, n_jobs=-1)
     
     male_r2 = r2_score(y[male_indices], pred[male_indices])
@@ -928,7 +928,7 @@ def plot_4_2(X, y):
 
 
 # Fill in your answer. Don't change the name of the variable
-q_4_2 = "C,E"
+q_4_2 = "C,E,F"
 
 
 # In[48]:
