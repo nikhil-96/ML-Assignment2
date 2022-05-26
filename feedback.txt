@@ -1,43 +1,43 @@
 Feedback for Patni, N.:
 
-Q1.1 : 4.0/4
+Q1.1 (code): 4/4
 OK
 
-Q1.2 : 3.0/4
-Worst columns are not selected correctly
+Q1.2 (plot): 3.5/4
+You're finding slightly different columns that the actual worse ones.
 
-Q1.3 : 1.6/2
+Q1.3 (MC, auto): 1.6/2
 A,B,D,(F),G are the correct answers.
  -0.4 for every mismatch
 
-Q1.4 : 2.0/2
+Q1.4 (auto): 2/2
 OK
 
-Q2.1 : 2.0/2
+Q2.1 (code, auto): 2.0/2
 OK
 
-Q2.2 : 4.0/4
+Q2.2 (plot): 4.0/4
 OK
 
-Q2.3 : 2.0/2
+Q2.3 (MC, auto): 2.0/2
 OK
 
-Q2.4 : 5.34/6
+Q2.4 (plot + MC (auto)): 5.34/6
 OK but C is also correct
 
-Q2.5 : 2.0/2
+Q2.5 (plot): 2.0/2
 OK
 
-Q3.1 : 4.0/4
+Q3.1 (plot): 4.0/4
 OK
 
-Q3.2 : 2.0/2
+Q3.2 (MC, auto): 2.0/2
 OK
 
-Q4.1 : 1.5/3
-B and D are correct choices
+Q4.1 : 3.0/3
+OK with provided hyperparameters
 
-Q4.2 : 2.25/3
-F is not correct
+Q4.2 : 3.0/3
+OK with provided hyperparameters
 
-Total: 35.69 / 40
+Total: 38.44 / 40
